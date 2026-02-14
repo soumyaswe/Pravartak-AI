@@ -1,0 +1,294 @@
+/* ============================================
+   ROADMAP.SH-STYLE FLOWCHART CSS
+   Using Flexbox & Pseudo-elements for connecting lines
+   ============================================ */
+
+/* ============================================
+   1. NODE CONTAINER - The main wrapper for each node
+   ============================================ */
+.node-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  margin: 20px 0;
+}
+
+.node-container.root-node {
+  margin-top: 40px;
+}
+
+/* ============================================
+   2. NODE LABEL WRAPPER - Contains the node card
+   Positioned relatively for pseudo-element anchoring
+   ============================================ */
+.node-label-wrapper {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+}
+
+/* ============================================
+   3. VERTICAL LINE FROM NODE TO CHILDREN
+   Using ::after pseudo-element on the label wrapper
+   Only shown when node has children
+   ============================================ */
+.node-label-wrapper.has-children::after {
+  content: '';
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 44px;
+  background: linear-gradient(to bottom, 
+    rgba(168, 85, 247, 0.6), 
+    rgba(147, 197, 253, 0.6)
+  );
+  z-index: -1;
+}
+
+/* Dark mode support for vertical line */
+@media (prefers-color-scheme: dark) {
+  .node-label-wrapper.has-children::after {
+    background: linear-gradient(to bottom, 
+      rgba(168, 85, 247, 0.8), 
+      rgba(147, 197, 253, 0.8)
+    );
+  }
+}
+
+/* ============================================
+   4. NODE LABEL - The actual card/box
+   ============================================ */
+.node-label {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+              0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  position: relative;
+  z-index: 10;
+}
+
+.node-label:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 
+              0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: #a855f7;
+}
+
+/* ============================================
+   5. CHILDREN CONTAINER - THE KEY COMPONENT
+   This is where the horizontal "bus" layout happens
+   ============================================ */
+.children-container {
+  display: flex;
+  position: relative;
+  margin-top: 24px;
+  gap: 30px;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 20px;
+}
+
+/* Single child: vertical stack */
+.children-container.single-child {
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding-top: 0;
+}
+
+/* Multiple children: horizontal layout */
+.children-container.multiple-children {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+/* ============================================
+   6. HORIZONTAL "BUS" LINE - The Main Magic
+   Using ::before pseudo-element to draw the connector
+   This line connects all sibling nodes horizontally
+   ============================================ */
+.children-container.multiple-children::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, 
+    rgba(168, 85, 247, 0.3), 
+    rgba(59, 130, 246, 0.6),
+    rgba(168, 85, 247, 0.3)
+  );
+  z-index: 0;
+  border-radius: 2px;
+}
+
+/* Dark mode for horizontal bus line */
+@media (prefers-color-scheme: dark) {
+  .children-container.multiple-children::before {
+    background: linear-gradient(to right, 
+      rgba(168, 85, 247, 0.5), 
+      rgba(59, 130, 246, 0.8),
+      rgba(168, 85, 247, 0.5)
+    );
+  }
+}
+
+/* ============================================
+   7. CHILD WRAPPER - Individual child container
+   ============================================ */
+.child-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-width: 200px;
+  max-width: 280px;
+}
+
+/* ============================================
+   8. VERTICAL CONNECTOR FROM BUS TO CHILD
+   Using ::before on child wrapper
+   Connects the horizontal bus line to each child node
+   ============================================ */
+.children-container.multiple-children > .child-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 40px;
+  background: linear-gradient(to bottom, 
+    rgba(59, 130, 246, 0.6), 
+    rgba(168, 85, 247, 0.6)
+  );
+  z-index: 0;
+  border-radius: 2px;
+}
+
+/* Dark mode for child connectors */
+@media (prefers-color-scheme: dark) {
+  .children-container.multiple-children > .child-wrapper::before {
+    background: linear-gradient(to bottom, 
+      rgba(59, 130, 246, 0.8), 
+      rgba(168, 85, 247, 0.8)
+    );
+  }
+}
+
+/* ============================================
+   9. RESPONSIVE DESIGN
+   Adjust layout for smaller screens
+   ============================================ */
+@media (max-width: 768px) {
+  .children-container.multiple-children {
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .child-wrapper {
+    min-width: 240px;
+    max-width: 100%;
+  }
+
+  /* On mobile, change horizontal bus to vertical */
+  .children-container.multiple-children::before {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    height: auto;
+    transform: translateX(-50%);
+    background: linear-gradient(to bottom, 
+      rgba(168, 85, 247, 0.3), 
+      rgba(59, 130, 246, 0.6),
+      rgba(168, 85, 247, 0.3)
+    );
+  }
+
+  /* Remove child connectors on mobile (already have vertical line) */
+  .children-container.multiple-children > .child-wrapper::before {
+    display: none;
+  }
+}
+
+/* ============================================
+   10. ANIMATIONS & POLISH
+   ============================================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.node-container {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Stagger animation for children */
+.child-wrapper:nth-child(1) { animation-delay: 0.1s; }
+.child-wrapper:nth-child(2) { animation-delay: 0.2s; }
+.child-wrapper:nth-child(3) { animation-delay: 0.3s; }
+.child-wrapper:nth-child(4) { animation-delay: 0.4s; }
+.child-wrapper:nth-child(5) { animation-delay: 0.5s; }
+
+/* ============================================
+   11. DEPTH-BASED SCALING
+   Nodes get slightly smaller as depth increases
+   ============================================ */
+/* Removed depth-based scaling to fix line connection issues */
+/* .node-container .node-container {
+  transform: scale(0.95);
+}
+
+.node-container .node-container .node-container {
+  transform: scale(0.9);
+}
+
+.node-container .node-container .node-container .node-container {
+  transform: scale(0.85);
+} */
+
+/* ============================================
+   12. CONNECTING LINE GLOW ON HOVER
+   ============================================ */
+.node-label:hover ~ .children-container::before,
+.children-container:hover::before {
+  background: linear-gradient(to right, 
+    rgba(168, 85, 247, 0.6), 
+    rgba(59, 130, 246, 0.9),
+    rgba(168, 85, 247, 0.6)
+  );
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.5);
+}
+
+/* ============================================
+   13. PRINT STYLES
+   Ensure roadmap prints nicely
+   ============================================ */
+@media print {
+  .node-label {
+    box-shadow: none;
+    border: 2px solid #000;
+  }
+
+  .node-label-wrapper.has-children::after,
+  .children-container::before,
+  .child-wrapper::before {
+    background: #000 !important;
+  }
+}

@@ -1,0 +1,26 @@
+# Python dependencies for GCP-based AI Interviewer Avatar Backend
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+Flask==3.0.0
+flask-cors==4.0.0
+Flask-SocketIO==5.3.5
+
+# Production WSGI Server (Cloud Run compatible)
+gunicorn==21.2.0
+gevent==23.9.1
+gevent-websocket==0.10.1
+
+# Google Cloud Services
+google-cloud-texttospeech==2.16.3
+google-cloud-speech==2.21.0
+google-cloud-aiplatform==1.38.1  # Vertex AI SDK (includes Gemini models)
+
+# Utilities
+python-dotenv==1.0.0
+mutagen==1.47.0
+requests==2.31.0
+
+# Optional: For enhanced phoneme detection (advanced implementation)
+# pronouncing==0.2.0
+# pydub==0.25.1

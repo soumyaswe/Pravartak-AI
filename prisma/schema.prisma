@@ -1,0 +1,410 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  cognitoUserId String    @unique // AWS Cognito user id (sub)
+  email         String    @unique
+  name          String?
+  imageUrl      String?
+  industry      String?    // Combined industry-subindustry (e.g., "tech-software-development")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Profile fields
+  bio           String?
+  experience    Int?      // Years of experience
+  phone         String?
+  location      String?
+  linkedIn      String?
+  portfolio     String?
+  
+  // Relations
+  skills        String[]  // Array of skills
+  assessments   Assessment[]
+  resumes       Resume[]
+  coverLetters  CoverLetter[]
+  mockInterviews MockInterview[]
+  interviewPreps InterviewPrep[]
+  jobApplications JobApplication[]
+  activities    UserActivity[]
+  profile       UserProfile?
+  chatSessions  ChatSession[]
+  savedResources LearningResource[]
+  notifications Notification[]
+}
+
+model Assessment {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  quizScore     Float     // Overall quiz score
+  questions     Json[]    // Array of {question, answer, userAnswer, isCorrect}
+  category      String    // "Technical", "Behavioral", etc.
+  improvementTip String?  // AI-generated improvement tip
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+model Resume {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String    // Resume name/title
+  content     Json      // Full resume structure as JSON
+  templateId  String?   // Which template was used
+  version     Int       @default(1)
+  
+  status      ResumeStatus @default(DRAFT)
+  
+  // AI Analysis
+  atsScore    Float?
+  feedback    String?   @db.Text
+  
+  // File storage
+  pdfUrl      String?   // Generated PDF URL
+  
+  // Metadata
+  isDefault   Boolean   @default(false)
+  shareToken  String?   @unique  // For public sharing
+  downloadCount Int     @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([shareToken])
+}
+
+enum ResumeStatus {
+  DRAFT
+  COMPLETED
+  ARCHIVED
+}
+
+model CoverLetter {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title           String?   // Cover letter name
+  content         String    @db.Text // Full content
+  companyName     String?   // Company applying to
+  jobTitle        String?   // Position applying for
+  jobDescription  String?   @db.Text
+  
+  status          CoverLetterStatus @default(DRAFT)
+  
+  // Metadata
+  wordCount       Int?
+  associatedResumeId String?  // Link to resume used
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+enum CoverLetterStatus {
+  DRAFT
+  COMPLETED
+  ARCHIVED
+}
+
+// Combined Industry Trends and Salary Insights
+model IndustryInsight {
+  id            String    @id @default(cuid())
+  industry      String    @unique  // The industry this data belongs to (e.g., "tech-software-development")
+  
+  // Salary data
+  salaryRanges  Json[]    // Array of { role: string, min: float, max: float, median: float, location: string? }
+  
+  // Industry trends
+  growthRate    Float     // Industry growth rate
+  demandLevel   String    // "High", "Medium", "Low"
+  topSkills     String[]  // Most in-demand skills
+  
+  // Market conditions
+  marketOutlook String    // "Positive", "Neutral", "Negative"
+  keyTrends     String[]  // Array of current industry trends
+  
+  // Learning suggestions
+  recommendedSkills String[]  // Skills recommended for the industry
+  
+  lastUpdated   DateTime  @default(now())
+  nextUpdate    DateTime  // Scheduled update time
+
+  @@index([industry])
+}
+
+// Mock Interview Sessions
+model MockInterview {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          MockInterviewType
+  industry      String?
+  experienceLevel String? // Entry/Mid/Senior
+  duration      Int       // in seconds
+  
+  // Questions asked
+  questions     Json      // Array of { id, question, type, difficulty }
+  
+  // User responses
+  responses     Json      // Array of { questionId, answer, audioUrl?, responseTime, confidence }
+  
+  // AI Feedback
+  overallScore  Float?
+  communicationScore Float?
+  contentScore  Float?
+  clarityScore  Float?
+  feedback      Json?     // Detailed feedback per question
+  strengths     String[]
+  improvements  String[]
+  recommendations String[] // Learning resources
+  
+  completedAt   DateTime  @default(now())
+  
+  @@index([userId, completedAt])
+}
+
+enum MockInterviewType {
+  BEHAVIORAL
+  TECHNICAL
+  CASE_STUDY
+  GENERAL
+}
+
+// Interview Preparation sessions
+model InterviewPrep {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  company       String
+  position      String
+  interviewDate DateTime?
+  interviewType String?   // Phone/Video/In-person
+  round         String?   // 1st/2nd/Final
+  
+  // Preparation data
+  jobDescription String?   @db.Text
+  companyResearch String?  @db.Text
+  questions     Json      // Array of { question, answer, practiced, confidence }
+  questionsToAsk String[]
+  notes         String?   @db.Text
+  
+  status        InterviewStatus @default(PREPARING)
+  outcome       String?   // If completed
+  followUpNotes String?   @db.Text
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId])
+}
+
+enum InterviewStatus {
+  PREPARING
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+// Job Application Tracking
+model JobApplication {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  company       String
+  position      String
+  jobUrl        String?
+  
+  // Application details
+  applicationDate DateTime @default(now())
+  status        JobApplicationStatus @default(APPLIED)
+  
+  // Documents used
+  resumeId      String?
+  coverLetterId String?
+  
+  // Contact info
+  contactPerson String?
+  contactEmail  String?
+  
+  // Salary & location
+  salaryMin     Int?
+  salaryMax     Int?
+  location      String?
+  jobType       String?   // Remote/Hybrid/On-site
+  
+  // Tracking
+  priority      String    @default("MEDIUM") // HIGH/MEDIUM/LOW
+  notes         String?   @db.Text
+  followUpDate  DateTime?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId, status])
+}
+
+enum JobApplicationStatus {
+  APPLIED
+  SCREENING
+  INTERVIEW
+  OFFER
+  ACCEPTED
+  REJECTED
+}
+
+// User Activity tracking
+model UserActivity {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  activityType  ActivityType
+  description   String
+  metadata      Json?     // Additional data
+  
+  createdAt     DateTime  @default(now())
+  
+  @@index([userId, createdAt])
+}
+
+enum ActivityType {
+  RESUME_CREATED
+  RESUME_UPDATED
+  RESUME_DOWNLOADED
+  COVER_LETTER_CREATED
+  COVER_LETTER_UPDATED
+  MOCK_INTERVIEW_COMPLETED
+  INTERVIEW_PREPARED
+  PROFILE_UPDATED
+  JOB_APPLIED
+  SKILL_ASSESSED
+  RESOURCE_SAVED
+}
+
+// User Profile (for completion tracking)
+model UserProfile {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Profile completion tracking
+  hasBasicInfo      Boolean @default(false)
+  hasExperience     Boolean @default(false)
+  hasEducation      Boolean @default(false)
+  hasSkills         Boolean @default(false)
+  hasResume         Boolean @default(false)
+  hasCoverLetter    Boolean @default(false)
+  hasCompletedMockInterview Boolean @default(false)
+  
+  // Structured data
+  experience        Json?     // Array of work experiences
+  education         Json?     // Array of education
+  certifications    Json?     // Array of certifications
+  projects          Json?     // Array of projects
+  languages         Json?     // Array of languages
+  
+  // Preferences
+  preferredLocations String[]
+  preferredJobTypes  String[] // Remote/Hybrid/On-site
+  preferredIndustries String[]
+  salaryExpectation  Int?
+  
+  updatedAt         DateTime  @updatedAt
+}
+
+// AI Chat Sessions
+model ChatSession {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  context       String    // resume/cover-letter/interview/career
+  title         String?
+  
+  messages      Json      // Array of { role, content, timestamp }
+  
+  tokensUsed    Int       @default(0)
+  modelUsed     String    @default("gemini-pro")
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([userId, createdAt])
+}
+
+// Learning Resources
+model LearningResource {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          ResourceType
+  title         String
+  url           String
+  description   String?   @db.Text
+  
+  category      String?
+  tags          String[]
+  
+  progress      Int       @default(0) // 0-100%
+  completed     Boolean   @default(false)
+  notes         String?   @db.Text
+  rating        Int?      // 1-5 stars
+  
+  savedAt       DateTime  @default(now())
+  
+  @@index([userId])
+}
+
+enum ResourceType {
+  ARTICLE
+  VIDEO
+  COURSE
+  BOOK
+  PODCAST
+}
+
+// Notifications
+model Notification {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type          NotificationType
+  title         String
+  message       String    @db.Text
+  actionUrl     String?
+  
+  read          Boolean   @default(false)
+  
+  createdAt     DateTime  @default(now())
+  expiresAt     DateTime?
+  
+  @@index([userId, read, createdAt])
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  REMINDER
+  ACHIEVEMENT
+}

@@ -1,0 +1,26 @@
+import { redirect } from "next/navigation";
+import { industries } from "@/data/industries";
+import OnboardingForm from "./_components/onboarding-form";
+import { getUserOnboardingStatus } from "@/actions/user";
+
+export const dynamic = 'force-dynamic';
+
+export default async function OnboardingPage() {
+  try {
+    // Check if user is already onboarded
+    const { isOnboarded } = await getUserOnboardingStatus();
+
+    if (isOnboarded) {
+      redirect("/dashboard");
+    }
+
+    return (
+      <main>
+        <OnboardingForm industries={industries} />
+      </main>
+    );
+  } catch (error) {
+    // If authentication fails, redirect to sign-in
+    redirect("/sign-in");
+  }
+}
