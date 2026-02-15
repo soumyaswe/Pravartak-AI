@@ -6,7 +6,7 @@
 [![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://reactjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.x-2D3748?logo=prisma)](https://prisma.io/)
-[![Firebase](https://img.shields.io/badge/Firebase-Auth-orange?logo=firebase)](https://firebase.google.com/)
+[![Cognito](https://img.shields.io/badge/Cognito-Auth-orange?logo=Cognito)](https://Cognito.google.com/)
 
 Your AI-powered career development platform for professional success
 
@@ -57,14 +57,15 @@ Pravartak is a comprehensive AI-powered career coaching platform designed to acc
 
 ### **Authentication & Security**
 
-- **Firebase Authentication** - Secure user authentication
+- **Cognito Authentication** - Secure user authentication
 - **Google OAuth** - Social login integration
 - **JWT Tokens** - Secure session management
 - **Email/Password** - Traditional authentication option
 
 ### **AI & External Services**
 
-- **Gemini AI API** - Advanced language model integration
+- **Amazon Bedrock (Claude)** - Advanced language model integration
+- **AWS SDK** - Bedrock Runtime client for AI services
 - **Date-fns** - Modern date utility library
 - **HTML2PDF** - Document generation and export
 - **React Hook Form** - Form state management
@@ -77,8 +78,8 @@ Before running this project, ensure you have:
 - **Node.js** (v18 or higher)
 - **npm** or **yarn** package manager
 - **PostgreSQL** database
-- **Firebase** project with Authentication enabled
-- **Gemini AI API** key
+- **Cognito** project with Authentication enabled
+- **Amazon Bedrock API** access with Claude models enabled
 
 ## Installation & Setup
 
@@ -103,16 +104,20 @@ Create a `.env` file in the root directory:
 # Database
 DATABASE_URL="postgresql://username:password@localhost:5432/pravartak"
 
-# Firebase Configuration
-NEXT_PUBLIC_FIREBASE_API_KEY="your_firebase_api_key"
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your_project.firebaseapp.com"
-NEXT_PUBLIC_FIREBASE_PROJECT_ID="your_project_id"
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your_project.firebasestorage.app"
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your_sender_id"
-NEXT_PUBLIC_FIREBASE_APP_ID="your_app_id"
+# Cognito Configuration
+NEXT_PUBLIC_Cognito_API_KEY="your_Cognito_api_key"
+NEXT_PUBLIC_Cognito_AUTH_DOMAIN="your_project.Cognitoapp.com"
+NEXT_PUBLIC_Cognito_PROJECT_ID="your_project_id"
+NEXT_PUBLIC_Cognito_STORAGE_BUCKET="your_project.Cognitostorage.app"
+NEXT_PUBLIC_Cognito_MESSAGING_SENDER_ID="your_sender_id"
+NEXT_PUBLIC_Cognito_APP_ID="your_app_id"
 
-# AI Integration
-GEMINI_API_KEY="your_gemini_api_key"
+# Amazon Bedrock AI Configuration
+BEDROCK_API_KEY="your_bedrock_api_key"
+AWS_ACCESS_KEY_ID="your_aws_access_key_id"
+AWS_SECRET_ACCESS_KEY="your_aws_secret_access_key"
+MODEL_ID="your model id"
+NEXT_PUBLIC_AWS_REGION="us-east-1"
 
 # Application
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
@@ -131,10 +136,10 @@ npx prisma migrate dev
 npx prisma db seed
 ```
 
-### 5. **Firebase Setup**
+### 5. **Cognito Setup**
 
-1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable Authentication with Google and Email/Password providers
+1. Create a Cognito project at [console.aws.amazon.com](https://console.aws.amazon.com)
+2. Enable Authentication and Email/Password providers
 3. Add your domain to authorized domains
 4. Copy configuration to your .env file
 
@@ -173,7 +178,7 @@ Pravartak/
     hero.jsx                  # Landing page hero
     theme-provider.jsx        # Theme management
  contexts/                     # React contexts
-    auth-context.js           # Firebase authentication
+    auth-context.js           # Cognito authentication
  lib/                          # Utilities and configurations
     prisma.js                 # Database client
     utils.js                  # Utility functions
@@ -197,14 +202,14 @@ Pravartak/
 
 ### **Authentication Flow**
 
-- **Firebase Integration** - Secure, scalable authentication
+- **Cognito Integration** - Secure, scalable authentication
 - **Protected Routes** - Role-based access control
 - **Session Management** - Persistent login state
 - **Onboarding Process** - Guided user setup
 
 ### **AI Integration**
 
-- **Gemini AI** - Advanced natural language processing
+- **Amazon Bedrock (Claude)** - Advanced natural language processing
 - **Context-Aware Responses** - Career-focused AI assistance
 - **Real-time Chat** - Instant AI support
 - **Document Analysis** - Intelligent resume and CV feedback
@@ -326,7 +331,7 @@ Quad Squad Development Team
 
 - **Next.js Team** - For the amazing React framework
 - **Vercel** - For hosting and deployment solutions
-- **Firebase** - For authentication infrastructure
+- **Cognito** - For authentication infrastructure
 - **Tailwind CSS** - For the utility-first CSS framework
 - **Prisma** - For the excellent ORM and database tools
 
@@ -339,67 +344,3 @@ For support, email [support@pravartak.ai](mailto:support@pravartak.ai) or join o
 Made with ❤️ by **Quad Squad**
 
 Star this repository if you find it helpful!
-
-## **Setup After Redaction**
-
-- **Rotate leaked or exposed keys (urgent):** Immediately delete any compromised keys in the Google Cloud Console, Firebase console, and any other provider dashboards. Create new credentials and service account keys before you redeploy.
-- **Store secrets securely:** Do NOT commit service account JSON files, API keys, or database passwords into the repository. Use Google Secret Manager (or your cloud provider's secret store) and inject secrets at deploy time.
-- **Quick provisioning (PowerShell, Windows):** From the project root (requires `gcloud` CLI installed and logged in):
-
-```powershell
-# Login and set project
-gcloud auth login
-gcloud config set project YOUR_PROJECT_ID
-
-# Optional: enable required APIs
-gcloud services enable run.googleapis.com secretmanager.googleapis.com sqladmin.googleapis.com
-
-# Run the interactive helper to create a service account, upload its key to Secret Manager, and prepare deployment
-.\scripts\setup-gcp.ps1
-```
-
-- **Local development note:** For safe local testing only, place your service account JSON at `backend/service-account-key.json` and set `GOOGLE_APPLICATION_CREDENTIALS=./backend/service-account-key.json` in your local `.env`. NEVER commit that file — add it to `.gitignore`.
-- **Leaked-keys check:** If you maintain a short list of known-leaked API key strings, provide them at deploy time instead of hardcoding. Example (Cloud Run env var):
-
-```bash
-LEAKED_KEYS_JSON='["key1","key2"]'
-```
-
-- **Final validation:** After provisioning new credentials, deploy to Cloud Run (or your chosen host), verify the app functions, and then permanently delete old keys from all provider consoles.
-
-### Enabling a single `.env` for the project
-
-This repository is configured to use a single root `.env` file for local development. Put all environment variables in the repository root `.env` file. Do NOT commit real secrets; the root `.env` is ignored by Git.
-
-Notes:
-
-- Client-side variables must begin with `NEXT_PUBLIC_` so Next.js exposes them to the browser (these are not secret).
-
-- Server-only variables (database URLs, private API keys, service-account references) must NOT be used in client code — keep them server-side. The Python backend reads the project root `.env` automatically.
-
-- For production, prefer Secret Manager or Workload Identity; do not deploy service-account JSON files into the container image.
-
-### Enabling a local pre-commit secret check
-
-To avoid accidentally committing secrets, enable the supplied Git hook scanner:
-
-1. Set Git to use the repository hooks folder:
-
-```bash
-git config core.hooksPath .githooks
-```
-
-1. Make the hook executable (Git Bash / WSL):
-
-```bash
-chmod +x .githooks/pre-commit
-```
-
-1. (Optional) Run a manual scan anytime:
-
-```powershell
-.\scripts\scan-secrets.ps1
-```
-
-The pre-commit hook runs a short PowerShell-based scan and will abort a commit if it finds likely secret patterns. This is an extra safety net — you should still rotate any keys you believe are compromised.
-# Deployment 2025-11-25 20:03:04
