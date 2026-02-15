@@ -3,9 +3,9 @@ import { generateWithBedrock, BEDROCK_MODELS } from "@/lib/bedrock-client";
 import mammoth from "mammoth";
 import { marked } from "marked";
 
-// --- CV ANALYZER API (CONVERTED FROM PYTHON) ---
-// This API endpoint provides CV/Resume analysis using Google's Gemini API
-// Uses Gemini REST API for better PDF support and simpler configuration
+// --- CV ANALYZER API (MIGRATED TO BEDROCK) ---
+// This API endpoint provides CV/Resume analysis using Amazon Bedrock (Claude models)
+// Uses API key authentication from environment variables
 // 
 // Features implemented from Python version:
 // 1. Fictional job title blocklist
@@ -73,10 +73,7 @@ function formatAnalysisOutput(rawAnalysis) {
   }
 }
 
-// Vertex AI model - initialized on demand
-function getModel() {
-  return getVertexAIModel('gemini-2.0-flash-exp');
-}
+// Bedrock model is used via generateWithBedrock function
 
 export async function POST(request) {
   try {
@@ -160,8 +157,8 @@ export async function POST(request) {
     try {
       console.log(`Analyzing file: ${file.name} for job: ${jobTitle}`);
       
-      // Prepare prompt for Gemini API
-      // Gemini API accepts strings or arrays with text/inlineData parts
+      // Prepare prompt for Bedrock API
+      // Bedrock API accepts strings or arrays with text/image parts
       const jobTitlePrompt = `\nHere is the analysis request:\n**Target Job Title:** ${jobTitle}\n\n**Resume Content:**\n`;
       const promptParts = [];
 
@@ -203,7 +200,7 @@ export async function POST(request) {
                 { status: 400 }
               );
             } else {
-              // Add text content for Gemini API
+              // Add text content for Bedrock API
               promptParts.push({ text: trimmedContent });
               console.log(`PDF text extracted successfully: ${trimmedContent.length} characters`);
             }
@@ -212,9 +209,9 @@ export async function POST(request) {
           console.error("Error processing PDF file:", pdfError);
           console.error("PDF error details:", pdfError.message);
           
-          // Fallback: Send PDF directly to Gemini API (it can handle PDFs)
+          // Fallback: Send PDF directly to Bedrock API (it can handle PDFs)
           try {
-            console.log("Attempting fallback: sending PDF directly to Gemini API");
+            console.log("Attempting fallback: sending PDF directly to Bedrock API");
             const bytes = await file.arrayBuffer();
             const base64 = Buffer.from(bytes).toString('base64');
             promptParts.push({
@@ -223,7 +220,7 @@ export async function POST(request) {
                 mimeType: "application/pdf"
               }
             });
-            console.log("PDF sent directly to Gemini API for OCR processing");
+            console.log("PDF sent directly to Bedrock API for OCR processing");
           } catch (fallbackError) {
             console.error("Fallback method also failed:", fallbackError);
             return NextResponse.json(
@@ -276,7 +273,7 @@ export async function POST(request) {
         }
         promptParts.push({ text: fileContent });
       } else if (file.type.startsWith("image/")) {
-        // Handle images (convert to base64 for Gemini)
+        // Handle images (convert to base64 for Bedrock)
         const bytes = await file.arrayBuffer();
         const base64 = Buffer.from(bytes).toString('base64');
         
@@ -343,11 +340,11 @@ export async function POST(request) {
       }
 
       // Log prompt structure for debugging
-      console.log("📋 Preparing prompt for Gemini API...");
+      console.log(`📋 Preparing prompt for Bedrock API...`);
       console.log(`   Prompt parts: ${promptParts.length}`);
       
-      // Convert to Gemini API format
-      // Gemini API accepts: string or array of { text: string } or { inlineData: {...} }
+      // Convert to Bedrock API format
+      // Bedrock API accepts: string or array of { text: string } or { image: {...} }
       const hasInlineData = promptParts.some(part => part.inlineData);
       
       let finalPrompt;

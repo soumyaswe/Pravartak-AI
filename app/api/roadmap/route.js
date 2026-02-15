@@ -1,9 +1,9 @@
-import { getVertexAIModel, generateWithFallback as vertexGenerateWithFallback } from '@/lib/vertex-ai';
+import { getBedrockModel, generateWithBedrock } from '@/lib/bedrock-client';
 import { NextResponse } from 'next/server';
 
 import { validateAndFilterLinks, validateAndFilterLinksWithReplacement } from '@/lib/url-validator';
 
-// Vertex AI configuration (retry and fallback built into vertex-ai utility)
+// Bedrock configuration (retry and fallback built into bedrock-client utility)
 
 const FICTIONAL_CAREERS_BLOCKLIST = [
   'jedi', 'wizard', 'dragon rider', 'superhero', 'hobbit', 'elf',
@@ -464,10 +464,13 @@ export async function POST(request) {
 
     const fullPrompt = `${SYSTEM_PROMPT}\n\nPlease generate a roadmap for the career: '${career}'`;
     
-    console.log('Sending request to Vertex AI...');
-    const result = await vertexGenerateWithFallback(fullPrompt);
-    const text = result.response.candidates[0].content.parts[0].text;
-    console.log('Received response from Vertex AI');
+    console.log('Sending request to Bedrock...');
+    const result = await generateWithBedrock(fullPrompt, {
+      maxTokens: 4096,
+      temperature: 0.7
+    });
+    const text = result.response.text();
+    console.log('Received response from Bedrock');
 
     // Clean the response
     const cleanedResponse = text.trim();

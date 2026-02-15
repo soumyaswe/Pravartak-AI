@@ -1,7 +1,7 @@
-import { getVertexAIModel, generateWithFallback } from '@/lib/vertex-ai';
+import { getBedrockModel, generateWithBedrock } from '@/lib/bedrock-client';
 import { NextResponse } from 'next/server';
 
-// Vertex AI models configuration (fallback support built-in)
+// Bedrock models configuration (fallback support built-in)
 
 export async function POST(request) {
   try {
@@ -25,8 +25,11 @@ export async function POST(request) {
     `;
 
     console.log('API: Validating job role:', jobRole);
-    const validationResult = await generateWithFallback(validationPrompt);
-    const validationText = validationResult.response.candidates[0].content.parts[0].text.trim().split('\n')[0].toUpperCase();
+    const validationResult = await generateWithBedrock(validationPrompt, {
+      maxTokens: 100,
+      temperature: 0.3
+    });
+    const validationText = validationResult.response.text().trim().split('\n')[0].toUpperCase();
     console.log('API: Validation result:', validationText);
 
     if (validationText.includes('INVALID')) {
@@ -57,8 +60,11 @@ export async function POST(request) {
     `;
 
     console.log('API: Generating questions for:', jobRole);
-    const questionsResult = await generateWithFallback(questionsPrompt);
-    const questionsText = questionsResult.response.candidates[0].content.parts[0].text;
+    const questionsResult = await generateWithBedrock(questionsPrompt, {
+      maxTokens: 1024,
+      temperature: 0.7
+    });
+    const questionsText = questionsResult.response.text();
     console.log('API: Generated questions text:', questionsText);
     
     // Parse questions from the response
