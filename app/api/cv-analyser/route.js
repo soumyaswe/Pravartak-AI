@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generateWithFallback, MODELS } from "@/lib/gemini-fallback";
+import { generateWithBedrock, BEDROCK_MODELS } from "@/lib/bedrock-client";
 import mammoth from "mammoth";
 import { marked } from "marked";
 
@@ -401,23 +400,27 @@ export async function POST(request) {
         );
       }
       
-      console.log(`📤 Sending prompt to Gemini API (type: ${typeof finalPrompt})`);
+      console.log(`📤 Sending prompt to Bedrock API (type: ${typeof finalPrompt})`);
       
       // Check for API key
-      if (!process.env.GEMINI_API_KEY) {
-        console.error('❌ GEMINI_API_KEY not found in environment variables');
+      if (!process.env.BEDROCK_API_KEY) {
+        console.error('❌ BEDROCK_API_KEY not found in environment variables');
         return NextResponse.json(
           { 
-            error: "Server configuration error: Gemini API key not found. Please contact support.", 
+            error: "Server configuration error: Bedrock API key not found. Please contact support.", 
             success: false 
           },
           { status: 500 }
         );
       }
       
-      // Generate content with Gemini API (using fallback for reliability)
-      const result = await generateWithFallback(process.env.GEMINI_API_KEY, finalPrompt, MODELS);
-      // Gemini API response format: result.response.text()
+      // Generate content with Bedrock API (using fallback for reliability)
+      const result = await generateWithBedrock(finalPrompt, {
+        fallbackModels: BEDROCK_MODELS,
+        maxTokens: 4096,
+        temperature: 0.7
+      });
+      // Bedrock API response format: result.response.text()
       const rawAnalysis = result.response.text();
       
       // Format the analysis to remove Markdown symbols while preserving structure

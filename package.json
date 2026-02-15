@@ -28,6 +28,7 @@
     "deploy:open": "gcloud app browse"
   },
   "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.990.0",
     "@google-cloud/aiplatform": "^3.35.0",
     "@google-cloud/speech": "^7.2.1",
     "@google-cloud/vertexai": "^1.10.0",

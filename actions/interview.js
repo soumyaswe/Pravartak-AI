@@ -2,11 +2,10 @@
 
 import { db } from "@/lib/prisma";
 import { getAuthenticatedUser } from "@/lib/auth-server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { revalidatePath } from "next/cache";
-import { getModelWithFallback } from "@/lib/gemini-fallback";
+import { getModelWithFallback } from "@/lib/bedrock-client";
 
-const model = getModelWithFallback(process.env.GEMINI_API_KEY);
+const model = getModelWithFallback();
 
 export async function generateQuiz() {
   const user = await getAuthenticatedUser();

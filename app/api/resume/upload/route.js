@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { getAuthenticatedUser } from "@/lib/auth-server";
 import { db } from "@/lib/prisma";
-// Using GoogleGenerativeAI for file upload functionality (Vertex AI file handling is different)
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { GoogleAIFileManager } from "@google/generative-ai/server";
+import { getBedrockModel } from "@/lib/bedrock-client";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
+const model = getBedrockModel(undefined, {
+  maxTokens: 8000,
+  temperature: 0.3
+});
 
 export async function POST(req) {
   try {
@@ -25,27 +25,6 @@ export async function POST(req) {
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Save temporarily
-    const fs = require("fs");
-    const path = require("path");
-    const os = require("os");
-    
-    const tempDir = os.tmpdir();
-    const tempFilePath = path.join(tempDir, `resume-${Date.now()}-${file.name}`);
-    
-    fs.writeFileSync(tempFilePath, buffer);
-
-    // Upload to Gemini File API
-    const uploadResult = await fileManager.uploadFile(tempFilePath, {
-      mimeType: file.type,
-      displayName: file.name,
-    });
-
-    console.log(`Uploaded file ${uploadResult.file.displayName} as: ${uploadResult.file.uri}`);
-
-    // Extract content using Gemini with file
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `You are an expert resume parser. Extract ALL information from this resume document and structure it in a detailed JSON format.
 
@@ -193,18 +172,82 @@ Return ONLY a valid JSON object with this structure:
 
 CRITICAL: Return ONLY the JSON object, no markdown, no explanation, no code blocks.`;
 
-    const result = await model.generateContent([
-      {
-        fileData: {
-          mimeType: uploadResult.file.mimeType,
-          fileUri: uploadResult.file.uri,
-        },
-      },
-      { text: prompt },
-    ]);
+    // Process file based on type
+    let promptParts = [];
+    
+    if (file.type === "application/pdf") {
+      // Handle PDF files using pdf-parse
+      try {
+        const pdfParse = (await import("pdf-parse")).default;
+        const pdfData = await pdfParse(buffer);
+        const fileContent = pdfData.text;
+        
+        if (!fileContent || !fileContent.trim()) {
+          // If text extraction fails, send PDF as document
+          const base64 = buffer.toString('base64');
+          promptParts = [
+            { text: prompt },
+            {
+              document: {
+                format: "pdf",
+                name: file.name,
+                source: {
+                  bytes: buffer
+                }
+              }
+            }
+          ];
+        } else {
+          promptParts = [{ text: `${prompt}\n\nResume Content:\n${fileContent}` }];
+        }
+      } catch (pdfError) {
+        console.error("Error processing PDF:", pdfError);
+        throw new Error("Failed to process PDF file");
+      }
+    } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      // Handle DOCX files using mammoth
+      try {
+        const mammoth = (await import("mammoth")).default;
+        const result = await mammoth.extractRawText({ buffer: bytes });
+        const fileContent = result.value;
+        
+        if (!fileContent || !fileContent.trim()) {
+          throw new Error("Could not extract text from DOCX file");
+        }
+        
+        promptParts = [{ text: `${prompt}\n\nResume Content:\n${fileContent}` }];
+      } catch (docxError) {
+        console.error("Error processing DOCX:", docxError);
+        throw new Error("Failed to process DOCX file");
+      }
+    } else if (file.type.startsWith("image/")) {
+      // Handle images
+      const base64 = buffer.toString('base64');
+      promptParts = [
+        { text: prompt },
+        {
+          image: {
+            format: file.type.split('/')[1],
+            source: {
+              bytes: buffer
+            }
+          }
+        }
+      ];
+    } else if (file.type === "text/plain") {
+      // Handle text files
+      const fileContent = buffer.toString('utf8');
+      promptParts = [{ text: `${prompt}\n\nResume Content:\n${fileContent}` }];
+    } else {
+      return NextResponse.json(
+        { error: "Unsupported file type. Please upload PDF, DOCX, image, or text file." },
+        { status: 400 }
+      );
+    }
 
-    const response = await result.response;
-    let extractedText = response.text();
+    // Generate content using Bedrock
+    const result = await model.generateContent(promptParts);
+    let extractedText = result.response.text();
 
     // Clean up the response
     extractedText = extractedText.trim();
@@ -234,17 +277,6 @@ CRITICAL: Return ONLY the JSON object, no markdown, no explanation, no code bloc
         status: "DRAFT",
       },
     });
-
-    // Clean up temporary file
-    fs.unlinkSync(tempFilePath);
-
-    // Delete the file from Gemini after processing
-    try {
-      await fileManager.deleteFile(uploadResult.file.name);
-    } catch (deleteError) {
-      console.error("Failed to delete file from Gemini:", deleteError);
-      // Don't fail the request if cleanup fails
-    }
 
     return NextResponse.json({
       success: true,
