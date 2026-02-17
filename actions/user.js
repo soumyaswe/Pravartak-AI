@@ -146,22 +146,34 @@ export async function getUserOnboardingStatus() {
     const user = await getAuthenticatedUser();
     
     if (!user) {
-      // If user is not authenticated, it's not an onboarding status, but an auth issue
-      // Let the client-side ProtectedRoute handle the redirect
-      return { isOnboarded: false, error: "User not authenticated" };
+      throw new Error("User not authenticated");
     }
 
     return {
       isOnboarded: !!user?.industry,
+      user: user,
     };
   } catch (error) {
-    console.error("Error checking onboarding status:", error);
-    // Distinguish between auth errors and other errors (e.g., database)
-    if (error.message?.includes("Authentication required") || error.message?.includes("User not found")) {
-      return { isOnboarded: false, error: error.message };
+    console.error("[getUserOnboardingStatus] Error:", error.message);
+    
+    // Re-throw authentication errors so the page can handle them
+    if (error.message?.includes("Authentication required") || 
+        error.message?.includes("not authenticated") ||
+        error.message?.includes("Unauthorized")) {
+      throw error;
     }
-    // For other errors (e.g., database connection), return false but don't redirect
-    return { isOnboarded: false, error: "Failed to check onboarding status due to server error." };
+    
+    // For database or other errors, log but don't fail auth
+    // User might be authenticated but DB is having issues
+    console.error("[getUserOnboardingStatus] Non-auth error, returning default:", error.message);
+    
+    // Return a safe default - the user is authenticated (passed getAuthenticatedUser)
+    // but we couldn't check onboarding status
+    return { 
+      isOnboarded: false, 
+      error: error.message,
+      dbError: true // Flag to distinguish from auth errors
+    };
   }
 }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getVertexAIModel, generateWithFallback } from "@/lib/vertex-ai";
+import { getBedrockModel, generateWithBedrock } from "@/lib/bedrock-client";
 
 export async function POST(request) {
   try {
@@ -19,7 +19,7 @@ export async function POST(request) {
       );
     }
 
-    // Generate cover letter using Gemini AI
+    // Generate cover letter using Amazon Bedrock (Claude)
     const prompt = `Based on the following resume and job details, generate a professional, compelling cover letter. The cover letter should be personalized, highlight relevant experience from the resume, and demonstrate enthusiasm for the role.
 
 RESUME CONTENT:
@@ -79,9 +79,12 @@ EXAMPLE FORMAT:
 
 Generate the cover letter HTML now following the exact format above:`;
 
-    const result = await generateWithFallback(prompt);
-    // Vertex AI response format: result.response.candidates[0].content.parts[0].text
-    let coverLetterContent = result.response.candidates[0].content.parts[0].text;
+    const result = await generateWithBedrock(prompt, {
+      maxTokens: 2048,
+      temperature: 0.7
+    });
+    // Bedrock response format: result.response.text()
+    let coverLetterContent = result.response.text();
 
     // Clean up markdown if present
     coverLetterContent = coverLetterContent

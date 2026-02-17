@@ -1,4 +1,4 @@
-import { getVertexAIModel, generateWithFallback } from '@/lib/vertex-ai';
+import { getBedrockModel, generateWithBedrock } from '@/lib/bedrock-client';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
@@ -18,9 +18,9 @@ export async function POST(request) {
       );
     }
 
-    // Vertex AI uses service account authentication - no API key needed
+    // Bedrock uses API key authentication from environment variables
 
-    // Model will be selected by generateWithFallback helper
+    // Model will be selected by generateWithBedrock helper
 
     // Use Google Cloud Speech-to-Text API for transcription
     let speechAnalysis = null;
@@ -60,7 +60,7 @@ export async function POST(request) {
     
     console.log('Speech analysis:', speechAnalysis);
 
-    // Evaluate answer content using Gemini
+    // Evaluate answer content using Bedrock (Claude)
     const contentPrompt = `
       You are a senior hiring manager for a '${jobRole}' position in India. Your task is to evaluate a candidate's answer to an interview question.
       
@@ -99,14 +99,17 @@ export async function POST(request) {
       JSON Response:
     `;
 
-    console.log('Sending content evaluation request to Gemini');
-    const contentResult = await generateWithFallback(contentPrompt);
+    console.log('Sending content evaluation request to Bedrock');
+    const contentResult = await generateWithBedrock(contentPrompt, {
+      maxTokens: 1024,
+      temperature: 0.7
+    });
     let contentEvaluation;
     
     try {
-      // Vertex AI response format: contentResult.response.candidates[0].content.parts[0].text
-      const responseText = contentResult.response.candidates[0].content.parts[0].text.trim();
-      console.log('Gemini response:', responseText);
+      // Bedrock response format: contentResult.response.text()
+      const responseText = contentResult.response.text().trim();
+      console.log('Bedrock response:', responseText);
       const jsonText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
       contentEvaluation = JSON.parse(jsonText);
       console.log('Parsed content evaluation:', contentEvaluation);

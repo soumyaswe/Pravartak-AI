@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getVertexAIModel, generateWithFallback } from "@/lib/vertex-ai";
+import { getBedrockModel, generateWithBedrock } from "@/lib/bedrock-client";
 
 // --- CAREER COUNSELING CHAT API ---
-// This API endpoint provides career counseling assistance using Google's Gemini AI via Vertex AI
-// Uses service account authentication (no API keys required)
+// This API endpoint provides career counseling assistance using Amazon Bedrock (Claude models)
+// Uses API key authentication from environment variables
 // 
 // Guardrails implemented:
 // 1. CV/Resume analysis rejection
@@ -34,19 +34,19 @@ Follow these rules strictly:
 5.  **Be Concise and Professional:** Provide clear and helpful answers. Do not invent information.
 `;
 
-// Initialize Vertex AI models (no API keys required)
+// Initialize Bedrock models
 let textModel;
 let visionModel;
 
-const initializeVertexAI = () => {
+const initializeBedrock = () => {
   if (textModel) return; // Already initialized
   
   try {
-    textModel = getVertexAIModel('gemini-2.0-flash-exp');
-    visionModel = getVertexAIModel('gemini-2.0-flash-exp');
-    console.log("Vertex AI configured successfully.");
+    textModel = getBedrockModel();
+    visionModel = getBedrockModel();
+    console.log("Bedrock configured successfully.");
   } catch (error) {
-    console.error("Error configuring Vertex AI:", error);
+    console.error("Error configuring Bedrock:", error);
   }
 };
 
@@ -98,14 +98,14 @@ function buildConversationContext(messageHistory, currentMessage) {
 
 export async function POST(request) {
   try {
-    // Initialize Gemini on first request
-    initializeVertexAI();
+    // Initialize Bedrock on first request
+    initializeBedrock();
     
     // Check if API is configured
     if (!textModel || !visionModel) {
       return NextResponse.json(
         { 
-          error: "Gemini API is not configured. Please check your API key.", 
+          error: "Bedrock API is not configured. Please check your API key.", 
           success: false 
         },
         { status: 500 }
@@ -190,10 +190,13 @@ export async function POST(request) {
         }
       }
       
-      const result = await generateWithFallback(finalPrompt);
+      const result = await generateWithBedrock(finalPrompt, {
+        maxTokens: 2048,
+        temperature: 0.7
+      });
 
-      // Vertex AI response format: result.response.candidates[0].content.parts[0].text
-      const botResponse = result.response.candidates[0].content.parts[0].text;
+      // Bedrock response format: result.response.text()
+      const botResponse = result.response.text();
 
       return NextResponse.json({
         response: botResponse,

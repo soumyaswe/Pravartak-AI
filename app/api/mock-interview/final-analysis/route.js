@@ -1,4 +1,4 @@
-import { getVertexAIModel, generateWithFallback } from '@/lib/vertex-ai';
+import { getBedrockModel, generateWithBedrock } from '@/lib/bedrock-client';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
@@ -12,7 +12,7 @@ export async function POST(request) {
       );
     }
 
-    // Model will be selected by generateWithFallback helper
+    // Model will be selected by generateWithBedrock helper
 
     // Calculate averages and totals
     const avgWpm = history.reduce((sum, item) => sum + (item.wpm || 0), 0) / history.length;
@@ -64,9 +64,12 @@ export async function POST(request) {
       Keep the tone professional yet encouraging. Be specific and actionable in your recommendations.
     `;
 
-    const result = await generateWithFallback(summaryPrompt);
-    // Vertex AI response format: result.response.candidates[0].content.parts[0].text
-    const analysis = result.response.candidates[0].content.parts[0].text;
+    const result = await generateWithBedrock(summaryPrompt, {
+      maxTokens: 2048,
+      temperature: 0.7
+    });
+    // Bedrock response format: result.response.text()
+    const analysis = result.response.text();
 
     return NextResponse.json({
       analysis,
